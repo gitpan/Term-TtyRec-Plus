@@ -17,9 +17,9 @@ sub is_float
 
 my $t;
 
-# TESTING TIME_THRESHOLD #######################################################
+# testing time_threshold #######################################################
 $t = new Term::TtyRec::Plus(infile         => $ttyrec,
-                                    time_threshold => .02);
+                            time_threshold => .02);
 
 my $trunc = 0;
 my $trunc2 = 0;
@@ -32,7 +32,7 @@ while (my $frame_ref = $t->next_frame())
 is($trunc,  $time_truncated, "time_threshold works with diffs");
 is($trunc2, $time_truncated, "time_threshold works with timestamp - prev_timestamp");
 
-# TESTING FILEHANDLE #######################################################
+# testing filehandle ###########################################################
 open(my $handle, '<', $ttyrec);
 $t = new Term::TtyRec::Plus(filehandle => $handle);
 
@@ -44,10 +44,10 @@ while (my $frame_ref = $t->next_frame())
 
 is($t_time, $time, "filehandle argument works well enough");
 
-# TESTING INFILE + FILEHANDLE ##################################################
+# testing infile + filehandle ##################################################
 open(my $handle2, '<', $ttyrec);
 $t = new Term::TtyRec::Plus(filehandle => $handle2,
-                                    infile     => "t/simple.ttyrec");
+                            infile     => "t/simple.ttyrec");
 
 $t_time = 0;
 while (my $frame_ref = $t->next_frame())

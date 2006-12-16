@@ -10,15 +10,15 @@ Term::TtyRec::Plus - read a ttyrec
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
-C<Term::TtyRec::Plus> is a module that lets you read ttyrec files. The related module, L<Term::TtyRec|Term::TtyRec> is designed more for simple interactions. Plus gives you more information and, using a callback, lets you munge the data block and timestamp. It will do all the subtle work of making sure timing is kept consistent, and of rebuilding each frame header.
+C<Term::TtyRec::Plus> is a module that lets you read ttyrec files. The related module, L<Term::TtyRec|Term::TtyRec> is designed more for simple interactions. C<Term::TtyRec::Plus> gives you more information and, using a callback, lets you munge the data block and timestamp. It will do all the subtle work of making sure timing is kept consistent, and of rebuilding each frame header.
 
     use Term::TtyRec::Plus;
 
@@ -39,13 +39,13 @@ Creates and returns a new C<Term::TtyRec::Plus> object.
 
 =head3 Parameters
 
-Here are the parameters that C<<Term::TtyRec::Plus->new>> recognizes.
+Here are the parameters that C<<Term::TtyRec::Plus->new()>> recognizes.
 
 =over 4
 
 =item infile
 
-The input filename. A value of C<"-">, which is the default, means C<STDIN>.
+The input filename. A value of C<"-">, which is the default, or C<undef>, means C<STDIN>.
 
 =item filehandle
 
@@ -59,7 +59,7 @@ The maximum difference between two frames, in seconds. If C<undef>, which is the
 
 A callback, run for each frame before returning the frame to the user of C<Term::TtyRec::Plus>. This callback receives three arguments: the frame text, the timestamp, and the timestamp of the previous frame. All three arguments are passed as scalar references. The previous frame's timestamp is C<undef> for the first frame. The return value is not currently looked at. If you modify the timestamp, the module will make sure that change is noted and respected in further frame timestamps. Modifications to the previous frame's timestamp are currently ignored.
 
-  sub halve_frame_time
+  sub halve_frame_time_and_stumblify
   {
     my ($data_ref, $time_ref, $prev_ref) = @_;
     $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
@@ -71,7 +71,7 @@ A callback, run for each frame before returning the frame to the user of C<Term:
 
 =head3 State
 
-Furthermore, you can modify C<Term::TtyRec::Plus>'s initial state, if you want to. This could be useful if you are chaining multiple ttyrecs together; you could pass a different initial frame. Support for such chaining might be added in a future version.
+In addition to passing arguments, you can modify C<Term::TtyRec::Plus>'s initial state, if you want to. This could be useful if you are chaining multiple ttyrecs together; you could pass a different initial frame. Support for such chaining might be added in a future version.
 
 =over 4
 
@@ -85,7 +85,7 @@ The previous frame's timestamp. Default C<undef>.
 
 =item accum_diff
 
-The accumulated difference of all frames seen so far; see the section on C<diffed_timestamp> in C<next_frame>'s return value. Default C<0>.
+The accumulated difference of all frames seen so far; see the section on C<diffed_timestamp> in C<next_frame()>'s return value. Default C<0>.
 
 =item relative_time
 
@@ -117,15 +117,20 @@ sub new
     @_,
   };
 
+  $self->{initial_state} = {
+                             map { $_ => $self->{$_} }
+                             qw/frame prev_timestamp accum_diff relative_time/
+                           };
+
   bless $self, $class;
-  
+ 
   if (defined($self->{filehandle}))
   {
     undef $self->{infile};
   }
   else
   {
-    if ($self->{infile} eq '-')
+    if (!defined($self->{infile}) || $self->{infile} eq '-')
     {
       $self->{filehandle} = *STDIN;
     }
@@ -146,7 +151,7 @@ sub new
 
 =head2 next_frame()
 
-next_frame reads and processes the next frame in the ttyrec. It accepts no arguments. On EOF, it will return undef. On malformed ttyrec input, it will die. If it cannot reconstruct the header of a frame (which might happen if the callback sets the timestamp to -1, for example), it will die. Otherwise, a hash reference is returned with the following fields set.
+C<next_frame()> reads and processes the next frame in the ttyrec. It accepts no arguments. On EOF, it will return C<undef>. On malformed ttyrec input, it will die. If it cannot reconstruct the header of a frame (which might happen if the callback sets the timestamp to -1, for example), it will die. Otherwise, a hash reference is returned with the following fields set.
 
 =over 4
 
@@ -212,14 +217,15 @@ sub next_frame
   my $orig_timestamp = $hdr[0] + $hdr[1] / 1_000_000;
   my $diffed_timestamp = $orig_timestamp + $self->{accum_diff};
   my $timestamp = $diffed_timestamp;
+  my $old_timestamp = $timestamp; # old = pre-filter
+  my $prev_timestamp = $self->{prev_timestamp};
 
-  my $old_timestamp = $timestamp;
-
+  # apply a threshold, if applicable
   if (defined($self->{time_threshold}) && 
-      defined($self->{prev_timestamp}) && 
-      $timestamp - $self->{prev_timestamp} > $self->{time_threshold})
+      defined($prev_timestamp) && 
+      $timestamp - $prev_timestamp > $self->{time_threshold})
   {
-    $timestamp = $self->{prev_timestamp} + $self->{time_threshold};
+    $timestamp = $prev_timestamp + $self->{time_threshold};
     $self->{accum_diff} = $timestamp - $old_timestamp;
     $old_timestamp = $timestamp;
   }
@@ -228,8 +234,6 @@ sub next_frame
 
   croak "Expected $hdr[2]-byte frame, got $dgot"
     if $dgot != $hdr[2];
-
-  my $prev_timestamp = $self->{prev_timestamp};
 
   $self->{frame_filter}(\$data, \$timestamp, \$self->{prev_timestamp});
 
@@ -242,11 +246,14 @@ sub next_frame
 
   $self->{accum_diff} += $timestamp - $old_timestamp;
 
+  # rebuild header
   $hdr[0] = int($timestamp);
   $hdr[1] = int(1_000_000 * ($timestamp - $hdr[0]));
   $hdr[2] = length($data);
 
   my $newhdr =   pack "VVV", @hdr;
+
+  # test if header is kosher
   my @newhdr = unpack "VVV", $newhdr;
 
   croak "Unable to create a new header, seconds portion of timestamp: want to write $hdr[0], can only write $newhdr[0]"
@@ -257,7 +264,6 @@ sub next_frame
 
   croak "Unable to create a new header, frame length: want to write $hdr[2], can only write $newhdr[2]"
     if $hdr[2] != $newhdr[2];
-
 
   return
   {
@@ -274,6 +280,72 @@ sub next_frame
   };
 }
 
+=head2 grep()
+
+Returns the next frame that meets the specified criteria. C<grep()> accepts arguments that are subroutines, regex, or strings; anything else is a fatal error. If you pass multiple arguments to C<grep()>, each one must be true. The subroutines receive the frame reference that is returned by C<next_frame()>. You can modify the frame, but do so cautiously.
+
+  my $next_jump_frame_ref = $t->grep("Where do you want to jump?", sub { $_[0]{data} !~ /Message History/});
+
+=cut
+
+sub grep
+{
+  my $self = shift;
+  my @conditions;
+
+  foreach my $arg (@_)
+  {
+    if (ref($arg) eq 'CODE')
+    {
+      push @conditions, $arg;
+    }
+    elsif (ref($arg) eq 'Regexp')
+    {
+      push @conditions, sub { $_[0]{data} =~ $arg };
+    }
+    elsif (ref($arg) eq '')
+    {
+      push @conditions, sub { index($_[0]{data}, $arg) > -1 }
+    }
+    else
+    {
+      croak "Each of grep()'s arguments must be a subroutine, regular expression, or string; you passed a " . ref($arg);
+    }
+  }
+
+  FRAME:
+  while (my $frame_ref = $self->next_frame())
+  {
+    CONDITION:
+    foreach (@conditions)
+    {
+      next FRAME if not $_->($frame_ref);
+    }
+    return $frame_ref;
+  }
+
+  # no matching frames!
+  return;
+}
+
+=head2 rewind()
+
+Rewinds the ttyrec to the first frame and resets state variables to their initial values.
+
+=cut
+
+sub rewind
+{
+  my $self = shift;
+  
+  while (my ($k, $v) = each %{$self->{initial_state}})
+  {
+    $self->{$k} = $v;
+  }
+
+  seek $self->{filehandle}, 0, 0;
+}
+
 =head2 infile()
 
 Returns the infile passed to the constructor. If a filehandle was passed, this will be C<undef>.
@@ -287,7 +359,7 @@ sub infile
 
 =head2 filehandle()
 
-Returns the filehandle passed to the constructor, or if C<infile> was used, a handle to it.
+Returns the filehandle passed to the constructor, or if C<infile> was used, a handle to C<infile>.
 
 =cut
 
@@ -320,7 +392,7 @@ sub frame_filter
 
 =head2 frame()
 
-Returns the number of the most recently returned frame.
+Returns the frame number of the most recently returned frame.
 
 =cut
 

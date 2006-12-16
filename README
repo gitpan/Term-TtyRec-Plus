@@ -5,11 +5,11 @@ NAME
 
 
 VERSION
-    0.01
+    0.02
 
 
-RECENT CHANGES
-    This is the first version of the module.
+RECENT MAJOR CHANGES
+    0.02 - add grep() and rewind()
 
 
 INSTALLATION

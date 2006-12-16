@@ -9,6 +9,8 @@ t/01-read.t
 t/02-parameters.t
 t/03-filter.t
 t/04-failure.t
+t/05-grep.t
+t/06-rewind.t
 t/boilerplate.t
 t/malformed-data.ttyrec
 t/malformed-header.ttyrec

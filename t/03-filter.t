@@ -26,7 +26,7 @@ sub filter
 }
 
 my $t = new Term::TtyRec::Plus(infile => $ttyrec,
-                                       frame_filter => \&filter);
+                               frame_filter => \&filter);
 
 is($t->frame_filter(), \&filter, "frame_filter set properly");
 

@@ -1,5 +1,5 @@
 #!perl -T
-use Test::More tests => 10;
+use Test::More tests => 12;
 use Term::TtyRec::Plus;
 
 my $frames_read;
@@ -106,3 +106,21 @@ eval
 is($frames_read, 0, "no frames read");
 like($@, qr/Unable to create a new header, \w+ portion of timestamp/, "\$@ contains the correct error");
 
+# test bad grep() arg ##########################################################
+
+$frames_read = 0;
+
+eval
+{
+  my $t = new Term::TtyRec::Plus(infile => "t/simple.ttyrec");
+  my $time = 0;
+
+  while (my $frame_ref = $t->grep("I tell ya,", [qw/grep() was jsn's idea!!/]))
+  {
+    ++$frames_read;
+    $time += $frame_ref->{diff};
+  }
+};
+
+is($frames_read, 0, "no frames read");
+like($@, qr/Each of grep\(\)'s arguments must be a subroutine, regular expression, or string;/, "\$@ contains the correct error");
