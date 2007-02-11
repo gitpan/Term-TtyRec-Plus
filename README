@@ -5,11 +5,11 @@ NAME
 
 
 VERSION
-    0.02
+    0.03
 
 
 RECENT MAJOR CHANGES
-    0.02 - add grep() and rewind()
+    0.03 - add transparent bzip2 support via IO::Uncompress::Bunzip2.
 
 
 INSTALLATION

@@ -1,5 +1,8 @@
 Revision history for Term-TtyRec-Plus
 
+0.03    ongoing
+        rewind() on an unseekable filehandle will die.
+
 0.02    Fri Dec 15 22:03:23 UTC 2006
         Add grep() method to look for the next frame matching criteria.
         Add rewind() to reset state.

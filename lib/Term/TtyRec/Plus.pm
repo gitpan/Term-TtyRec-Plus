@@ -3,6 +3,7 @@ package Term::TtyRec::Plus;
 use warnings;
 use strict;
 use Carp qw/croak/;
+use IO::Uncompress::Bunzip2 qw($Bunzip2Error);
 
 =head1 NAME
 
@@ -10,23 +11,27 @@ Term::TtyRec::Plus - read a ttyrec
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
 C<Term::TtyRec::Plus> is a module that lets you read ttyrec files. The related module, L<Term::TtyRec|Term::TtyRec> is designed more for simple interactions. C<Term::TtyRec::Plus> gives you more information and, using a callback, lets you munge the data block and timestamp. It will do all the subtle work of making sure timing is kept consistent, and of rebuilding each frame header.
 
     use Term::TtyRec::Plus;
+    # complete (but simple) ttyrec playback script
 
-    my $ttyrec = Term::TtyRec::Plus->new();
-    while ($frame_ref = $ttyrec->next_frame())
+    foreach my $file (@ARGV)
     {
-      # do stuff with $frame_ref, e.g.
-      $total_time += $frame_ref->{diff};
+      my $ttyrec = Term::TtyRec::Plus->new(infile => $file, time_threshold => 10);
+      while (my $frame_ref = $ttyrec->next_frame())
+      {
+        select undef, undef, undef, $frame_ref->{diff};
+        print $frame_ref->{data};
+      }
     }
 
 =head1 CONSTRUCTOR AND STARTUP
@@ -39,7 +44,7 @@ Creates and returns a new C<Term::TtyRec::Plus> object.
 
 =head3 Parameters
 
-Here are the parameters that C<<Term::TtyRec::Plus->new()>> recognizes.
+Here are the parameters that C<new()> recognizes.
 
 =over 4
 
@@ -50,6 +55,10 @@ The input filename. A value of C<"-">, which is the default, or C<undef>, means 
 =item filehandle
 
 The input filehandle. By default this is C<undef>; if you have already opened the ttyrec then you can pass its filehandle to the constructor. If both filehandle and infile are defined, filehandle is used.
+
+=item bzip2
+
+Perform bzip2 decompression. By default this is C<undef>, which signals that bzip2 decompression should occur if and only if the filename is available and it ends in ".bz2". Otherwise, you can force or forbid decompression by setting bzip2 to a true or false value, respectively. After the call to new, this field will be set to either 1 if decompression is enabled or 0 if it is not.
 
 =item time_threshold
 
@@ -104,6 +113,7 @@ sub new
     # options
     infile              => "-",
     filehandle          => undef,
+    bzip2               => undef,
     time_threshold      => undef,
     frame_filter        => sub { @_ },
 
@@ -139,6 +149,20 @@ sub new
       open($self->{filehandle}, '<', $self->{infile})
         or croak "Unable to open '$self->{infile}' for reading: $!";
     }
+  }
+
+  # If the caller tells us explicitly what to do, we honor that.
+  # Otherwise use bzip2 if and only if the filename ends in .bz2.
+  $self->{bzip2} = defined($self->{infile}) && $self->{infile} =~ /\.bz2$/
+    unless defined $self->{bzip2};
+
+  $self->{bzip2} = not not $self->{bzip2}; # force 0 or 1
+
+  if ($self->{bzip2})
+  {
+    my $bz2_handle = new IO::Uncompress::Bunzip2($self->{filehandle})
+                       or die "bunzip2 failed: $Bunzip2Error\n";
+    $self->{filehandle} = $bz2_handle;
   }
 
   croak "Cannot have a negative time threshold"
@@ -330,7 +354,7 @@ sub grep
 
 =head2 rewind()
 
-Rewinds the ttyrec to the first frame and resets state variables to their initial values.
+Rewinds the ttyrec to the first frame and resets state variables to their initial values. Note that C<rewind()> if C<filehandle> is not seekable (such as STDIN on some systems, or if bzip2 decompression is used), this will die.
 
 =cut
 
@@ -343,7 +367,8 @@ sub rewind
     $self->{$k} = $v;
   }
 
-  seek $self->{filehandle}, 0, 0;
+  seek $self->{filehandle}, 0, 0
+    or croak "Unable to seek on filehandle";
 }
 
 =head2 infile()
@@ -366,6 +391,17 @@ Returns the filehandle passed to the constructor, or if C<infile> was used, a ha
 sub filehandle
 {
   $_[0]->{filehandle};
+}
+
+=head2 bzip2()
+
+Returns 1 if bzip2 decompression has taken place, 0 if it has not.
+
+=cut
+
+sub bzip2
+{
+  $_[0]->{bzip2};
 }
 
 =head2 time_threshold()
@@ -425,7 +461,7 @@ sub relative_time
 
 =head2 accum_diff()
 
-Returns the total time difference between timestamps and . C<accum_diff> is added to the timestamp before it is passed to the C<frame_filter> callback.
+Returns the total time difference between timestamps and filtered timestamps. C<accum_diff> is added to each frame's timestamp before they are passed to the C<frame_filter> callback.
 
 =cut
 
