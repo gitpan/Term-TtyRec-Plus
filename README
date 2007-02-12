@@ -5,10 +5,11 @@ NAME
 
 
 VERSION
-    0.03
+    0.04
 
 
 RECENT MAJOR CHANGES
+    0.04 - improve tests
     0.03 - add transparent bzip2 support via IO::Uncompress::Bunzip2.
 
 

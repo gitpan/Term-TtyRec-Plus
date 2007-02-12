@@ -1,6 +1,10 @@
 Revision history for Term-TtyRec-Plus
 
-0.03    ongoing
+0.04    Mon Feb 12 00:55:30 2007
+        Improve tests.
+
+0.03    Sun Feb 11 23:40:37 UTC 2007
+        Add transparent bzip2 support via IO::Uncompress::Bunzip2.
         rewind() on an unseekable filehandle will die.
 
 0.02    Fri Dec 15 22:03:23 UTC 2006

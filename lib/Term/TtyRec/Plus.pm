@@ -11,11 +11,11 @@ Term::TtyRec::Plus - read a ttyrec
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -44,7 +44,7 @@ Creates and returns a new C<Term::TtyRec::Plus> object.
 
 =head3 Parameters
 
-Here are the parameters that C<new()> recognizes.
+Here are the parameters that C<< Term::TtyRec::Plus->new() >> recognizes.
 
 =over 4
 
@@ -189,7 +189,7 @@ The frame timestamp, straight out of the file.
 
 =item diffed_timestamp
 
-The frame timestamp, with the accumulated difference of all of the previous frames applied to it. This is so consistent results are given. For example, if your callback adds three seconds to frame 5's timestamp, then frame 6's diffed timestamp will take into account those three seconds, so frame 6 happens three seconds later as well. So the net effect is frame 4 is extended by three seconds.
+The frame timestamp, with the accumulated difference of all of the previous frames applied to it. This is so consistent results are given. For example, if your callback adds three seconds to frame 5's timestamp, then frame 6's diffed timestamp will take into account those three seconds, so frame 6 happens three seconds later as well. So the net effect is frame 5 is extended by three seconds, and no other frames' relatives times are affected.
 
 =item timestamp
 
@@ -486,6 +486,9 @@ If you modify the data block, weird things could happen. This is especially true
 
 =item *
 If you modify the timestamp of a frame so that it is not in sequence with other frames, the behavior is undefined (it is up to the client program). C<Term::TtyRec::Plus> will not reorder the frames for you.
+
+=item *
+bzip2 support is transparent, mostly. Unfortunately L<IO::Uncompress::Bunzip2|IO::Uncompress::Bunzip2> is rather slow. I took a lengthy (~4 hours), bzipped ttyrec and ran a simple script on it, depending on the built-in bzip2 decompression. This took nearly four minutes. Using bunzip2 then the same script took about four seconds. So when you can, do explicit bzip2 decompression. Or better yet, help out the guys working on IO::Uncompress::Bunzip2. :)
 
 =back
 

@@ -11,7 +11,7 @@ my $time = 434.991698026657;
 sub is_float
 {
   my ($a, $b, $test) = @_;
-  ok(abs($a - $b) < 1e-6, $test);
+  ok(abs($a - $b) < 1e-4, $test);
 }
 
 my $callback_called = 0;
