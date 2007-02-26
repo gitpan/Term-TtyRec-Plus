@@ -1,5 +1,8 @@
 Revision history for Term-TtyRec-Plus
 
+0.06    Mon Feb 26 01:14:20 UTC 2007
+        Fixed a bug with time_threshold.
+
 0.05    Mon Feb 19 04:57:21 UTC 2007
         Note dependency on IO::Uncompress::Bunzip2. Oops. :)
 

@@ -11,7 +11,15 @@ use Term::TtyRec::Plus;
 sub is_float
 {
   my ($a, $b, $test) = @_;
-  ok(abs($a - $b) < 1e-4, $test);
+  if (abs($a - $b) < 1e-4)
+  {
+    pass($test);
+  }
+  else
+  {
+    fail($test);
+    diag("Expected $a to be close to $b.");
+  }
 }
 
 my $t = new Term::TtyRec::Plus(infile => "t/simple.ttyrec.bz2");

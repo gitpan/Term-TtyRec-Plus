@@ -11,7 +11,15 @@ my $time = 434.991698026657;
 sub is_float
 {
   my ($a, $b, $test) = @_;
-  ok(abs($a - $b) < 1e-4, $test);
+  if (abs($a - $b) < 1e-4)
+  {
+    pass($test);
+  }
+  else
+  {
+    fail($test);
+    diag("Expected $a to be close to $b.");
+  }
 }
 
 my $callback_called = 0;

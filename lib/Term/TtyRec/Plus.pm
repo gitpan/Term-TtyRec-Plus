@@ -11,11 +11,11 @@ Term::TtyRec::Plus - read a ttyrec
 
 =head1 VERSION
 
-Version 0.05
+Version 0.06
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
@@ -250,7 +250,7 @@ sub next_frame
       $timestamp - $prev_timestamp > $self->{time_threshold})
   {
     $timestamp = $prev_timestamp + $self->{time_threshold};
-    $self->{accum_diff} = $timestamp - $old_timestamp;
+    $self->{accum_diff} += $timestamp - $old_timestamp;
     $old_timestamp = $timestamp;
   }
 

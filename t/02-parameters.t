@@ -6,28 +6,43 @@ use Term::TtyRec::Plus;
 my $ttyrec = "t/nethack.ttyrec";
 my $frames = 1783;
 my $time = 434.991698026657;
-my $time_truncated = 35.601359128952;
 my $time2 = 2.890479;
 
 # check whether two floating point values are close enough
 sub is_float
 {
   my ($a, $b, $test) = @_;
-  ok(abs($a - $b) < 1e-4, $test);
+  if (abs($a - $b) < 1e-4)
+  {
+    pass($test);
+  }
+  else
+  {
+    fail($test);
+    diag("Expected $a to be close to $b.");
+  }
 }
 
 my $t;
 
 # testing time_threshold #######################################################
+my $thresh = .02;
 $t = new Term::TtyRec::Plus(infile         => $ttyrec,
-                            time_threshold => .02);
+                            time_threshold => $thresh);
 
 my $trunc = 0;
 my $trunc2 = 0;
+my $time_truncated = 0;
 while (my $frame_ref = $t->next_frame())
 {
   $trunc += $frame_ref->{diff};
-  $trunc2 += defined($frame_ref->{prev_timestamp}) ? $frame_ref->{timestamp} - $frame_ref->{prev_timestamp} : 0;
+
+  my $calced_diff = defined($frame_ref->{prev_timestamp}) ? $frame_ref->{timestamp} - $frame_ref->{prev_timestamp} : 0;
+
+  $trunc2 += $calced_diff;
+
+  $calced_diff = $thresh if $calced_diff > $thresh;
+  $time_truncated += $calced_diff;
 }
 
 is_float($trunc,  $time_truncated, "time_threshold works with diffs");

@@ -12,6 +12,7 @@ t/04-failure.t
 t/05-grep.t
 t/06-rewind.t
 t/07-bzip2.t
+t/99-bugs.t
 t/boilerplate.t
 t/malformed-data.ttyrec
 t/malformed-header.ttyrec
