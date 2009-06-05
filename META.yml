@@ -1,12 +1,26 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Term-TtyRec-Plus
-version:      0.06
-version_from: lib/Term/TtyRec/Plus.pm
-installdirs:  site
-requires:
-    IO::Uncompress::Bunzip2:       0
-    Test::More:                    0
-
+---
+abstract: 'read a ttyrec'
+author:
+  - 'Shawn M Moore, C<sartak@gmail.com>'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30_01
+generated_by: 'Module::Install version 0.91'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Term-TtyRec-Plus
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  IO::Uncompress::Bunzip2: 0
+resources:
+  homepage: http://github.com/sartak/Term-TtyRec-Plus/tree
+  license: http://dev.perl.org/licenses/
+  repository: git://github.com/sartak/Term-TtyRec-Plus.git
+version: 0.07
