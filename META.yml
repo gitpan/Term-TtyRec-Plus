@@ -26,4 +26,4 @@ resources:
     type: git
     url: git://github.com/sartak/Term-TtyRec-Plus.git
     web: http://github.com/sartak/Term-TtyRec-Plus/tree
-version: 0.08
+version: 0.09

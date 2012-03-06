@@ -1,4 +1,5 @@
 bin/ttyplay
+bin/ttytime
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
